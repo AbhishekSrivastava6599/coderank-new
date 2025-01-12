@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+
+auth:
+  service:
+    url: http://AUTH-SERVICE:8082/api/v1/users
+    #url: http://localhost:8082/api/v1/users
+
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://service-registry:8761/eureka
+      #defaultZone: http://localhost:8761/eureka
+
+jwt:
+  secret: "0E654ACB6F4BB78AE105A53BDE251383B7D614C0CD324F83AA8BAD0DF73FD0A4"
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway: DEBUG

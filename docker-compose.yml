@@ -1,0 +1,109 @@
+services:
+  
+  # Service registry
+  service-registry:
+    build:
+      context: ./ServiceRegistry
+    image: service-registry
+    ports:
+      - "8761:8761"
+    restart: always
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:latest
+    container_name: postgresdb
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: coderank
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+  
+  # Messaging Queue
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+  
+  # API Gateway
+  api-gateway:
+    image: api-gateway
+    build:
+      context: ./ApiGateway
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - service-registry
+    restart: always
+  
+  # AuthService
+  auth-service:
+    image: auth-service
+    build:
+      context: ./AuthService
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/coderank
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      - service-registry
+      - postgres
+    restart: always
+  
+  # Task service  
+  task-queue-service:
+    build:
+      context: ./TaskQueueService
+    image: task-queue-service
+    ports:
+      - "8083:8083"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    depends_on:
+      - service-registry
+      - rabbitmq
+    restart: always
+      
+  # ExecutionService
+  execution-service:
+    build:
+      context: ./ExecutionService
+    image: execution-service
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/coderank
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      - service-registry
+      - rabbitmq
+      - postgres
+      - task-queue-service
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Mount Docker socket
+    restart: always 
+
+volumes:
+  postgres_data:

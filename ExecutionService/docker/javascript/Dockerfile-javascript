@@ -1,0 +1,10 @@
+# Dockerfile for Node.js Code Execution
+FROM node:18-slim
+
+WORKDIR /app
+
+# Copy the Node.js execution script
+COPY execute.js /app/execute.js
+
+# Skip npm install if no dependencies
+ENTRYPOINT ["node", "/app/execute.js"]
